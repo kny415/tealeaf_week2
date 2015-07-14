@@ -24,7 +24,7 @@ class RPSGame
   def compare_hands (hand1, hand2)
     puts "#{ player1.name } chose #{ CHOICES[hand1] }, #{ computer.name } chose #{ CHOICES[hand2] }"
 
-    if (hand1 == hand2 ) 
+    if (hand1 == hand2) 
       puts "Its a Tie!"
     elsif (hand1 == 'r' && hand2 == 's') ||
             (hand1 == 'p' && hand2 == 'r') ||
