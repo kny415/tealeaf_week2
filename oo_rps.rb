@@ -21,14 +21,14 @@ class RPSGame
     @computer = Player.new("Computer")
   end
 
-  def compare_hands (hand1, hand2)
-    puts "#{ player1.name } chose #{ CHOICES[hand1] }, #{ computer.name } chose #{ CHOICES[hand2] }"
+  def compare_hands
+    puts "#{ player1.name } chose #{ CHOICES[player1.hand] }, #{ computer.name } chose #{ CHOICES[computer.hand] }"
 
-    if (hand1 == hand2) 
+    if (player1.hand == computer.hand) 
       puts "Its a Tie!"
-    elsif (hand1 == 'r' && hand2 == 's') ||
-            (hand1 == 'p' && hand2 == 'r') ||
-            (hand1 == 's' && hand2 == 'p') 
+    elsif (player1.hand == 'r' && computer.hand == 's') ||
+            (player1.hand == 'p' && computer.hand == 'r') ||
+            (player1.hand == 's' && computer.hand == 'p') 
       puts "You Win!"
     else
       puts "You Lose!"
@@ -48,7 +48,7 @@ class RPSGame
       shoot
       break if player1.hand == 'q'
       # compare_hands (player1.hand, computer.hand) if CHOICES.keys.include? (player1.hand)
-      compare_hands(player1.hand, computer.hand) if CHOICES.keys.include? (player1.hand)
+      compare_hands if CHOICES.keys.include? (player1.hand)
     end
   end
 end
