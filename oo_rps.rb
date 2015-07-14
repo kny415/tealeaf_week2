@@ -12,7 +12,7 @@ class Player
 end
 
 class RPSGame
-  CHOICES = { 'r' => 'Rock', 'p' => 'Paper', 's' => 'Scissors'}
+  CHOICES = { 'r' => 'Rock', 'p' => 'Paper', 's' => 'Scissors' }
 
   attr_accessor :player1, :computer
 
@@ -22,14 +22,14 @@ class RPSGame
   end
 
   def compare_hands (hand1, hand2)
-    puts "You chose #{CHOICES[hand1]}, computer chose #{CHOICES[hand2]}"
+    puts "#{ player1.name } chose #{ CHOICES[hand1] }, #{ computer.name } chose #{ CHOICES[hand2] }"
 
     if (hand1 == hand2 ) 
       puts "Its a Tie!"
     elsif (hand1 == 'r' && hand2 == 's') ||
             (hand1 == 'p' && hand2 == 'r') ||
             (hand1 == 's' && hand2 == 'p') 
-          puts "You Win!"
+      puts "You Win!"
     else
       puts "You Lose!"
     end
@@ -40,7 +40,7 @@ class RPSGame
   def shoot
     computer.hand = CHOICES.keys.sample
     puts "Please choose r/p/s or q to quit"
-    player1.hand = gets.chomp
+    player1.hand = gets.chomp.downcase
   end
 
   def play
