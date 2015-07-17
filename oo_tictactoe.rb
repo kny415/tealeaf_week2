@@ -65,7 +65,6 @@ end
 class Game
 
   def initialize(board_size = 3)
-    # players_pick = ''
     @board = Board.new(board_size)
     @player = Player.new("Player 1", "X", board_size)
     @computer = Player.new("Computer", "O", board_size)
