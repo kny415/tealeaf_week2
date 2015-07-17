@@ -69,12 +69,16 @@ class Game
     @computer = Player.new('Computer', 'O', board_size)
   end
 
-  def players_turn
+  def player_input
     begin
       puts "enter square index (1 - #{@board.size**2}):"
       players_pick = gets.chomp
     end until (/[1-9]+/.match(players_pick) && @board.square_not_taken?(players_pick.to_i))
+    players_pick
+  end
 
+  def players_turn
+    players_pick = player_input
     @board.squares[players_pick.to_i].value = @player.mark
     update_score(@player.score, (players_pick.to_i - 1))
     @board.draw_board
@@ -87,15 +91,35 @@ class Game
     @board.draw_board
   end
 
-  def update_score(player_score, index)
+  def update_row_score(player_score, index)
     player_score[index / @board.size] += 1
+  end
+
+  def update_column_score(player_score, index)
     player_score[@board.size + index % @board.size] += 1
-    if (index % (@board.size + 1) == 0)
-      player_score[@board.size * 2] += 1
-    end
-    if (index < @board.size * @board.size - 1) && (index % (@board.size - 1) == 0) && (index > 0)
+  end
+
+  def update_diag1_score(player_score, index)
+    player_score[@board.size * 2] += 1 if (index % (@board.size + 1) == 0)
+  end
+
+  def update_diag2_score(player_score, index)
+    if (index < @board.size * @board.size - 1) && 
+       (index % (@board.size - 1) == 0) && 
+       (index > 0)
       player_score[@board.size * 2 + 1] += 1
     end
+  end
+
+  def update_score(player_score, index)
+    # binding.pry
+    update_row_score(player_score, index)
+    # player_score[index / @board.size] += 1
+    update_column_score(player_score, index)
+    # player_score[@board.size + index % @board.size] += 1
+    update_diag1_score(player_score, index)
+
+    update_diag2_score(player_score, index)
   end
 
   def winner?(score)
