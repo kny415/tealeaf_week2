@@ -58,7 +58,7 @@ class Player
     @name = name
     @mark = mark
     @score = []
-    (0..(size*2 + 2)).each { |index| @score[index] = 0 }
+    (0..(size*2 + 1)).each { |index| @score[index] = 0 }
   end
 end
 
