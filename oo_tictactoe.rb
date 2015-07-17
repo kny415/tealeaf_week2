@@ -10,7 +10,7 @@ class Square
   end
 
   def to_s
-    self.value
+    value
   end
 end
 
@@ -20,34 +20,34 @@ class Board
   def initialize(size)
     @squares = {}
     @size = size
-    (1..(size*size)).each { |key| @squares[key] = Square.new(' ') }
+    (1..(size * size)).each { |key| @squares[key] = Square.new(' ') }
   end
 
   def draw_board
     system 'clear'
-    (1..squares.size).each do |count|  
-      print " " + squares[count].to_s
+    (1..squares.size).each do |count|
+      print ' ' + squares[count].to_s
       if (count % size != 0)
-        print " |" 
+        print ' |'
       elsif (count != squares.size)
         print "\n"
-        size.to_i.times { print "----" } 
+        size.to_i.times { print '----' }
         print "\n"
       end
     end
     print "\n\n"
-  end  
+  end
 
   def board_full?
     squares.select { |key, _| squares[key].value == ' ' }.empty?
-  end 
-  
-  def get_empty_squares
+  end
+
+  def empty_squares
     squares.select { |key, _| squares[key].value == ' ' }.keys
   end
-  
+
   def square_not_taken?(index)
-    get_empty_squares.include?(index)
+    empty_squares.include?(index)
   end
 end
 
@@ -58,33 +58,32 @@ class Player
     @name = name
     @mark = mark
     @score = []
-    (0..(size*2 + 1)).each { |index| @score[index] = 0 }
+    (0..(size * 2 + 1)).each { |index| @score[index] = 0 }
   end
 end
 
 class Game
-
   def initialize(board_size = 3)
     @board = Board.new(board_size)
-    @player = Player.new("Player 1", "X", board_size)
-    @computer = Player.new("Computer", "O", board_size)
+    @player = Player.new('Player 1', 'X', board_size)
+    @computer = Player.new('Computer', 'O', board_size)
   end
 
   def players_turn
     begin
-      puts "enter square index (1 - #{ @board.size**2 }):"
+      puts "enter square index (1 - #{@board.size**2}):"
       players_pick = gets.chomp
     end until (/[1-9]+/.match(players_pick) && @board.square_not_taken?(players_pick.to_i))
 
     @board.squares[players_pick.to_i].value = @player.mark
-    update_score(@player.score, (players_pick.to_i - 1)) 
+    update_score(@player.score, (players_pick.to_i - 1))
     @board.draw_board
   end
 
   def computers_turn
-    computers_pick = @board.get_empty_squares.sample
+    computers_pick = @board.empty_squares.sample
     @board.squares[computers_pick].value = @computer.mark
-    update_score(@computer.score, (computers_pick.to_i - 1)) 
+    update_score(@computer.score, (computers_pick.to_i - 1))
     @board.draw_board
   end
 
@@ -94,24 +93,24 @@ class Game
     if (index % (@board.size + 1) == 0)
       player_score[@board.size * 2] += 1
     end
-    if ((index < @board.size * @board.size - 1) && (index % (@board.size - 1) == 0) && (index > 0))
+    if (index < @board.size * @board.size - 1) && (index % (@board.size - 1) == 0) && (index > 0)
       player_score[@board.size * 2 + 1] += 1
     end
   end
 
   def winner?(score)
-    score.select { |value| value >= @board.size }.size > 0
+    score.count { |value| value >= @board.size } > 0
   end
 
   def end_game?
     if winner?(@player.score)
-      puts "You win!"
+      puts 'You win!'
       true
     elsif winner?(@computer.score)
-      puts "You lose!"
+      puts 'You lose!'
       true
     elsif @board.board_full?
-      puts "Tie!"
+      puts 'Tie!'
       true
     else
       false
@@ -129,12 +128,11 @@ class Game
       break if end_game?
     end
   end
-
 end
 
 begin
-      puts "What size board would you like?"
-      user_input = gets.chomp
-end until user_input.to_i >= 3
+  puts 'What size board would you like?'
+  user_input = gets.chomp.to_i
+end until user_input >= 3
 
-Game.new(user_input.to_i).play
+Game.new(user_input).play
