@@ -55,9 +55,9 @@ class Player
   attr_accessor :score, :name, :mark
 
   def initialize(name, mark, size)
-    @score = []
     @name = name
     @mark = mark
+    @score = []
     (0..(size*2 + 2)).each { |index| @score[index] = 0 }
   end
 end
@@ -80,12 +80,14 @@ class Game
 
     @board.data[players_pick.to_i].value = @player.mark
     update_score(@player.score, (players_pick.to_i - 1)) 
+    @board.draw_board
   end
 
   def computers_turn
     computers_pick = @board.get_empty_squares.sample
     @board.data[computers_pick].value = @computer.mark
     update_score(@computer.score, (computers_pick.to_i - 1)) 
+    @board.draw_board
   end
 
   def update_score(player_score, index)
@@ -103,29 +105,30 @@ class Game
     score.select { |value| value >= @board.size }.size > 0
   end
 
+  def end_game?
+    if winner?(@player.score)
+      puts "You win!"
+      true
+    elsif winner?(@computer.score)
+      puts "You lose!"
+      true
+    elsif @board.board_full?
+      puts "Tie!"
+      true
+    else
+      false
+    end
+  end
+
   def play
     system 'clear'
-
+    @board.draw_board
+    
     loop do
-      @board.draw_board
       players_turn
-      @board.draw_board
-
-      if winner?(@player.score)
-        puts "You win!"
-        break
-      elsif @board.board_full?
-        puts "Tie!"
-        break
-      end
-
+      break if end_game?
       computers_turn
-      @board.draw_board
-
-      if winner?(@computer.score)
-        puts "You lose!"
-        break
-      end
+      break if end_game?
     end
   end
 
