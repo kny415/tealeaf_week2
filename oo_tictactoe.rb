@@ -15,21 +15,21 @@ class Square
 end
 
 class Board
-  attr_accessor :size, :data, :player_score, :computer_score
+  attr_accessor :size, :squares, :player_score, :computer_score
 
   def initialize(size)
-    @data = {}
+    @squares = {}
     @size = size
-    (1..(size*size)).each { |key| @data[key] = Square.new(' ') }
+    (1..(size*size)).each { |key| @squares[key] = Square.new(' ') }
   end
 
   def draw_board
     system 'clear'
-    (1..data.size).each do |count|  
-      print " " + data[count].to_s
+    (1..squares.size).each do |count|  
+      print " " + squares[count].to_s
       if (count % size != 0)
         print " |" 
-      elsif (count != data.size)
+      elsif (count != squares.size)
         print "\n"
         size.to_i.times { print "----" } 
         print "\n"
@@ -39,11 +39,11 @@ class Board
   end  
 
   def board_full?
-    data.select { |key, _| data[key].value == ' ' }.empty?
+    squares.select { |key, _| squares[key].value == ' ' }.empty?
   end 
   
   def get_empty_squares
-    data.select { |key, _| data[key].value == ' ' }.keys
+    squares.select { |key, _| squares[key].value == ' ' }.keys
   end
   
   def square_not_taken?(index)
@@ -63,7 +63,6 @@ class Player
 end
 
 class Game
-  attr_accessor :players_pick, :computers_pick
 
   def initialize(board_size = 3)
     # players_pick = ''
@@ -78,14 +77,14 @@ class Game
       players_pick = gets.chomp
     end until (/[1-9]+/.match(players_pick) && @board.square_not_taken?(players_pick.to_i))
 
-    @board.data[players_pick.to_i].value = @player.mark
+    @board.squares[players_pick.to_i].value = @player.mark
     update_score(@player.score, (players_pick.to_i - 1)) 
     @board.draw_board
   end
 
   def computers_turn
     computers_pick = @board.get_empty_squares.sample
-    @board.data[computers_pick].value = @computer.mark
+    @board.squares[computers_pick].value = @computer.mark
     update_score(@computer.score, (computers_pick.to_i - 1)) 
     @board.draw_board
   end
