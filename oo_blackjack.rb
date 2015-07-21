@@ -147,10 +147,6 @@ class Dealer
     @name = 'Dealer'
   end
 
-  def hit(card)
-    hand[hand_index] << card
-  end
-
   def show_hand(turn)
     if (turn == Game::DEALER)
       puts "#{name}: (#{hand.total})"
