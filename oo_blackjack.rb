@@ -323,6 +323,20 @@ class Game
     gets.chomp
   end
 
+  def play_hands
+    if dealer.hand.total == 21 || player1.hand[0].total == 21
+      show_blackjack_winner
+    else
+      loop do
+        end_player_turn? ? break : players_turn(players_choice)
+      end
+      loop do
+        dealer.hand.total >= 17 ? break : dealers_turn
+      end
+      show_hands(DEALER)
+    end
+  end
+
   def play
     puts 'how many decks?'
     @num_decks = gets.chomp.to_i
@@ -330,22 +344,8 @@ class Game
 
     loop do
       shoe.cards.size < 52 * num_decks * 0.25 ? new_shoe : false
-
       deal_starting_hands
-
-      if dealer.hand.total == 21 || player1.hand[0].total == 21
-        show_blackjack_winner
-      else
-        loop do
-          end_player_turn? ? break : players_turn(players_choice)
-        end
-
-        loop do
-          dealer.hand.total >= 17 ? break : dealers_turn
-        end
-        show_hands(DEALER)
-      end
-
+      play_hands
       count_quiz
       puts 'play again? (y/n)'
       break if gets.chomp == 'n'
