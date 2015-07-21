@@ -98,11 +98,13 @@ class Hand
   def splitable?
     cards.size == 2 ? cards[0].value == cards[1] .value : false
   end
+
+  def doubleable?
+    cards.size == 2
+  end
 end
 
 class Player
-  PLAYER = 1
-  DEALER = 2
   attr_accessor :hand_index, :hand, :name
 
   def initialize
@@ -143,8 +145,6 @@ class Player
 end
 
 class Dealer
-  PLAYER = 1
-  DEALER = 2
   attr_accessor :name, :hand
 
   def initialize
@@ -157,13 +157,14 @@ class Dealer
   end
 
   def show_hand(turn)
-    if (turn == DEALER)
+    if (turn == Game::DEALER)
       puts "#{name}: (#{hand.total})"
       hand.print_cards
     else
       puts 'Dealer'
       puts "#{hand.cards[0]}, Xx" 
     end
+    puts
   end
 end
 
@@ -266,7 +267,10 @@ class Game
       if player1.hand[player1.hand_index].splitable?
         player1.split(shoe.deal_one, shoe.deal_one)
       end
-    when 'd' then player1.double_down(shoe.deal_one)
+    when 'd'
+      if player1.hand[player1.hand_index].doubleable?
+        player1.double_down(shoe.deal_one)
+      end
     when 'help' then show_help
     end
     show_hands
