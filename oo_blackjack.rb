@@ -1,10 +1,5 @@
 # oo_blackjack.rb
 
-require 'pry'
-require 'pry-rescue'
-require 'pry-stack_explorer'
-require 'pry-nav'
-
 class Card
   attr_accessor :suit, :rank
 
