@@ -27,22 +27,37 @@ class Card
     end
     card_value
   end
+
+  def count_value
+    if /([2-6])/.match(rank)
+      count_value = 1
+    elsif /([10JQKA])/.match(rank)
+      count_value = -1
+    else
+      count_value = 0
+    end
+    count_value
+  end
 end
 
 class Deck
-  attr_accessor :cards
+  attr_accessor :cards, :running_count
 
-  def initialize
+  def initialize(num_decks = 1)
     @cards = []
     %w(H S C D).each do |suit|
       %w(2 3 4 5 6 7 8 9 10 J Q K A).each do |rank|
         @cards << Card.new(suit, rank)
       end
     end
+    @cards *= num_decks
+    @running_count = 0
   end
 
   def deal_one
-    cards.pop
+    card = cards.pop
+    self.running_count += card.count_value
+    card
   end
 end
 
@@ -78,6 +93,10 @@ class Hand
 
   def bust?
     total > 21
+  end
+
+  def splitable?
+    cards.size == 2 ? cards[0].value == cards[1] .value : false
   end
 end
 
@@ -152,11 +171,10 @@ class Game
   PLAYER = 1
   DEALER = 2
 
-  attr_reader :player1, :dealer
+  attr_reader :player1, :dealer, :shoe, :num_decks, :running_count
 
   def initialize
-    @deck = Deck.new
-    @deck.cards.shuffle!
+    @running_count = 0
     @player1 = Player.new
     @dealer = Dealer.new
   end
@@ -166,7 +184,7 @@ class Game
 
     player1.hand.each_with_index do |hand, key|
       msg = 
-        turn == DEALER && @dealer.hand.total >= 17 ? " #{show_winner(hand)}!" : '' 
+        turn == DEALER && @dealer.hand.total >= 17 ? " #{show_winner(hand)}!" : ''
       player1.show_hand(key, msg)
     end
 
@@ -178,16 +196,19 @@ class Game
     player1.hand_index > (player1.hand.size - 1)
   end
 
-  def deal_starting_hands
+  def initialize_starting_hands
     player1.hand_index = 0
     player1.hand = []
     player1.hand[0] = Hand.new
     dealer.hand = Hand.new
+  end
 
-    player1.hand[0].cards = Array(@deck.deal_one)
-    dealer.hand.cards << @deck.deal_one
-    player1.hand[0].cards << @deck.deal_one
-    dealer.hand.cards << @deck.deal_one
+  def deal_starting_hands
+    initialize_starting_hands
+    player1.hand[0].cards = Array(@shoe.deal_one)
+    dealer.hand.cards << shoe.deal_one
+    player1.hand[0].cards << shoe.deal_one
+    dealer.hand.cards << shoe.deal_one
 
     show_hands
   end
@@ -232,21 +253,21 @@ class Game
   end
 
   def players_choice
-    puts '(h)it, (s)tand, s(p)lit, or (d)ouble down'
+    puts '(h)it, (s)tand, s(p)lit, (d)ouble down, (help)'
     gets.chomp
   end
 
   def players_turn(user_choice)
     case user_choice
     when 'h'
-      player1.hit(@deck.deal_one)
+      player1.hit(shoe.deal_one)
     when 's' then player1.stay
     when 'p'
-      if player1.hand[player1.hand_index].cards[0].value ==
-         player1.hand[player1.hand_index].cards[1].value
-          player1.split(@deck.deal_one, @deck.deal_one)
+      if player1.hand[player1.hand_index].splitable?
+        player1.split(shoe.deal_one, shoe.deal_one)
       end
-    when 'd' then player1.double_down(@deck.deal_one)
+    when 'd' then player1.double_down(shoe.deal_one)
+    when 'help' then show_help
     end
     show_hands
   end
@@ -254,11 +275,63 @@ class Game
   def dealers_turn
     show_hands(DEALER)
     sleep 1
-    dealer.hand.cards << @deck.deal_one
+    dealer.hand.cards << shoe.deal_one
+  end
+
+  def new_shoe
+    @shoe = Deck.new(num_decks)
+    shoe.cards.shuffle!
+    system 'clear'
+    puts 'new shoe coming in'
+    sleep 2
+  end
+
+  def count_quiz
+    puts 'whats the count?'
+    count_answer = gets.chomp.to_i
+    print count_answer == shoe.running_count ? 'Correct!  ' : 'Incorrect.  '
+    puts "The current count is #{shoe.running_count}."
+    puts "Decks remaining = #{(shoe.cards.size / 52.0).round(2)}"
+  end
+
+  def show_help
+    puts [
+      'Insurance: Insure at +3 or higher.',
+      '16vT: Stand at 0 or higher, hit otherwise.',
+      '15vT: Stand at +4 or higher, hit otherwise.',
+      'TTv5: Split at +5 or higher, stand otherwise.',
+      'TTv6: Split at +4 or higher, stand otherwise.',
+      '10vT: Double at +4 or higher, hit otherwise.',
+      '12v3: Stand at +2 or higher, hit otherwise.',
+      '12v2: Stand at +3 or higher, hit otherwise.',
+      '11vA: Double at +1 or higher, hit otherwise.',
+      '9v2: Double at +1 or higher, hit otherwise.',
+      '10vA: Double at +4 or higher, hit otherwise.',
+      '9v7: Double at +3 or higher, hit otherwise.',
+      '16v9: Stand at +5 or higher, hit otherwise.',
+      '13v2: Stand at -1 or higher, hit otherwise.',
+      '12v4: Stand at 0 or higher, hit otherwise.',
+      '12v5: Stand at -2 or higher, hit otherwise.',
+      '12v6: Stand at -1 or higher, hit otherwise.',
+      "13v3: Stand at -2 or higher, hit otherwise.\n\n",
+      '2-6 = +1',
+      'T-A = -1'
+    ].join("\n") + "\n" 
+  
+    puts "The current count is #{shoe.running_count}."
+    puts "Decks remaining = #{(shoe.cards.size / 52.0).round(2)}"
+    puts "\n\nenter to continue"
+    gets.chomp
   end
 
   def play
+    puts 'how many decks?'
+    @num_decks = gets.chomp.to_i
+    new_shoe
+
     loop do
+      shoe.cards.size < 52 * num_decks * 0.25 ? new_shoe : false
+
       deal_starting_hands
 
       if dealer.hand.total == 21 || player1.hand[0].total == 21
@@ -274,8 +347,9 @@ class Game
         show_hands(DEALER)
       end
 
+      count_quiz
       puts 'play again? (y/n)'
-      break if gets.chomp == 'n' || @deck.cards.size < 52 * 0.25
+      break if gets.chomp == 'n'
     end
   end
 end
