@@ -3,11 +3,12 @@
 require 'pry'
 require 'pry-rescue'
 require 'pry-stack_explorer'
+require 'pry-nav'
 
 class Card
   attr_accessor :suit, :rank
 
-  def initialize (suit, rank)
+  def initialize(suit, rank)
     @suit = suit
     @rank = rank
   end
@@ -19,9 +20,9 @@ class Card
   def value
     if v = /(\d+)/.match(rank)
       card_value = v[0].to_i
-    elsif v = /([JQK])/.match(rank)
+    elsif /([JQK])/.match(rank)
       card_value = 10
-    elsif v = /(A)/.match(rank)
+    elsif /(A)/.match(rank)
       card_value = 11
     end
     card_value
@@ -33,8 +34,8 @@ class Deck
 
   def initialize
     @cards = []
-    ['H', 'S', 'C', 'D'].each do |suit|
-      ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'].each do |rank|
+    %w(H S C D).each do |suit|
+      %w(2 3 4 5 6 7 8 9 10 J Q K A).each do |rank|
         @cards << Card.new(suit, rank)
       end
     end
@@ -45,55 +46,113 @@ class Deck
   end
 end
 
+class Hand
+  attr_accessor :cards
+
+  def initialize
+    @cards = []
+  end
+
+  def print_cards
+    cards.each do |card|
+      print "#{card} "
+    end
+    puts
+  end
+
+  def total
+    hand_total = 0
+    num_aces = 0
+    cards.each do |card|
+      num_aces += 1 if /(A)/.match(card.rank)
+      hand_total += card.value
+    end
+
+    while hand_total > 21 && num_aces > 0
+      hand_total -= 10
+      num_aces -= 1
+    end
+
+    hand_total
+  end
+
+  def bust?
+    total > 21
+  end
+end
+
 class Player
+  PLAYER = 1
+  DEALER = 2
   attr_accessor :hand_index, :hand, :name
 
   def initialize
-    @hand = {}
+    @hand = Array(Hand.new)
     @hand_index = 0
     @name = 'Player 1'
   end
 
   def hit(card)
-    hand[hand_index] << card
+    hand[hand_index].cards << card
+    stay if hand[hand_index].total >= 21
   end
 
   def stay
-    if hand.size > 0 && hand_index < hand.size
-      self.hand_index += 1
-    end
+    self.hand_index += 1 if hand.size > 0 && hand_index < hand.size
   end
 
   def double_down(card)
-    hand[hand_index] << card
+    hand[hand_index].cards << card
     stay
   end
 
-  def split (card1, card2)
-    hand[hand.size] = Array(hand[hand_index].pop)
-    # binding.pry
+  def split(card1, card2)
+    hand[hand.size] = Hand.new
+    hand[hand.size - 1].cards = Array(hand[hand_index].cards.pop)
 
-    hand[hand_index] << card1
-    hand[hand.size-1] << card2
+    hand[hand_index].cards << card1
+    hand[hand.size - 1].cards << card2
+
+    stay if hand[hand_index].total == 21
+  end
+
+  def show_hand(key, msg)
+    puts name + ": (#{hand[key].total}) " + msg
+    print '=> ' if hand_index == key
+    hand[key].print_cards
   end
 end
 
 class Dealer
+  PLAYER = 1
+  DEALER = 2
   attr_accessor :name, :hand
 
   def initialize
-    @hand = []
+    @hand = Array(Hand.new)
     @name = 'Dealer'
   end
 
   def hit(card)
     hand[hand_index] << card
   end
+
+  def show_hand(turn)
+    if (turn == DEALER)
+      puts "#{name}: (#{hand.total})"
+      hand.print_cards
+    else
+      puts 'Dealer'
+      puts "#{hand.cards[0]}, Xx" 
+    end
+  end
 end
 
 class Game
   PLAYER = 1
   DEALER = 2
+
+  attr_reader :player1, :dealer
 
   def initialize
     @deck = Deck.new
@@ -102,155 +161,121 @@ class Game
     @dealer = Dealer.new
   end
 
-  def total_cards(cards)
-    hand_total = 0
-    num_aces = 0
-    cards.each do |card| 
-      num_aces += 1 if /(A)/.match(card.rank)
-      hand_total += card.value
-    end
-  
-    while hand_total > 21 && num_aces > 0
-      hand_total -= 10
-      num_aces -= 1
-    end 
-  
-    hand_total
-  end 
-
-  def bust?(hand)
-   total_cards(hand) > 21
-  end
-
-  def print_cards(hand)
-    hand.each do |card|
-      print "#{card} "
-    end
-    puts
-  end
-
   def show_hands(turn = PLAYER)
     system 'clear'
-    
-    @player1.hand.each do |key, value|
-      # binding.pry
-      hand_title =  @player1.name + ": (#{ total_cards(value) })"
-      if turn == DEALER && total_cards(@dealer.hand) >= 17
-        hand_title += " #{show_winner(value)}!"
-      end
-      puts hand_title
-      print '=> ' if @player1.hand_index == key
-      print_cards(value)
+
+    player1.hand.each_with_index do |hand, key|
+      msg = 
+        turn == DEALER && @dealer.hand.total >= 17 ? " #{show_winner(hand)}!" : '' 
+      player1.show_hand(key, msg)
     end
-  
+
     print "\n\n"
-  
-    if (turn == DEALER)
-      puts "Dealer: (#{ total_cards(@dealer.hand) })"
-      print_cards(@dealer.hand)
-    else
-      puts 'Dealer:'
-      print @dealer.hand[0]
-      puts ', Xx'
-    end
+    dealer.show_hand(turn)
   end
 
   def end_player_turn?
-    @player1.hand_index > (@player1.hand.size - 1)
+    player1.hand_index > (player1.hand.size - 1)
   end
 
   def deal_starting_hands
-    @player1.hand_index = 0
-    @player1.hand = {}
-    @dealer.hand = []
+    player1.hand_index = 0
+    player1.hand = []
+    player1.hand[0] = Hand.new
+    dealer.hand = Hand.new
 
-    @player1.hand[0] = Array(@deck.deal_one)
-    @dealer.hand << @deck.deal_one
-    @player1.hand[0] << @deck.deal_one
-    @dealer.hand << @deck.deal_one
-  end
+    player1.hand[0].cards = Array(@deck.deal_one)
+    dealer.hand.cards << @deck.deal_one
+    player1.hand[0].cards << @deck.deal_one
+    dealer.hand.cards << @deck.deal_one
 
-  def blackjack?
-    total_cards(@dealer.hand) == 21 || total_cards(@player1.hand[0]) == 21
+    show_hands
   end
 
   def show_blackjack_winner
     show_hands(DEALER)
-
-    if total_cards(@dealer.hand) == 21 && @dealer.hand.size == 2
-      if total_cards(@player1.hand[@player1.hand_index]) == 21
-        puts "Push"
-      else
-        puts "Dealer has Blackjack!"
-      end
-    elsif total_cards(@player1.hand[@player1.hand_index]) == 21 && @player1.hand[0].size == 2
-      puts "You have Blackjack!"
+    player_hand = player1.hand[player1.hand_index]
+    if push?(player_hand) && dealer.hand.cards.size == 2
+      puts 'Push'
+    elsif house_wins?(player_hand)
+      puts 'Dealer has Blackjack'
+    else
+      puts 'You have Blackjack!'
     end
   end
 
+  def push?(player_hand)
+    player_hand.total == dealer.hand.total && !player_hand.bust?
+  end
+
+  def house_wins?(player_hand)
+    player_hand.bust? ||
+      (player_hand.total < dealer.hand.total && !dealer.hand.bust?)
+  end
+
+  def player_wins?(player_hand)
+    dealer.hand.bust? && !player_hand.bust? ||
+      (player_hand.total > dealer.hand.total && !player_hand.bust?) ||
+      player_hand.total == 21
+  end
+
   def show_winner(player_hand)
-    if total_cards(player_hand) == total_cards(@dealer.hand) && !bust?(player_hand)
-      "its a push"
-    elsif bust?(player_hand) || (total_cards(player_hand) < total_cards(@dealer.hand) && !bust?(@dealer.hand))
-      "House wins"
-    elsif bust?(@dealer.hand) && !bust?(player_hand) || 
-            (total_cards(player_hand) > total_cards(@dealer.hand) && !bust?(player_hand)) || 
-            total_cards(player_hand) == 21
-      "#{@player1.name} wins"
+    if push?(player_hand) 
+      'its a push'
+    elsif house_wins?(player_hand)
+      'House wins'
+    elsif player_wins?(player_hand)
+      "#{player1.name} wins"
+    else
+      ''
     end
   end
 
   def players_choice
-    puts "(h)it, (s)tand, s(p)lit, or (d)ouble down"
+    puts '(h)it, (s)tand, s(p)lit, or (d)ouble down'
     gets.chomp
   end
 
   def players_turn(user_choice)
     case user_choice
     when 'h'
-      @player1.hit(@deck.deal_one)
-      @player1.stay if total_cards(@player1.hand[@player1.hand_index]) >= 21
-    when 's' then @player1.stay
-    when 'p' 
-      if @player1.hand[@player1.hand_index][0].value == 
-         @player1.hand[@player1.hand_index][1].value
-           @player1.split(@deck.deal_one, @deck.deal_one)
-           @player1.stay if total_cards(@player1.hand[@player1.hand_index]) == 21
+      player1.hit(@deck.deal_one)
+    when 's' then player1.stay
+    when 'p'
+      if player1.hand[player1.hand_index].cards[0].value ==
+         player1.hand[player1.hand_index].cards[1].value
+          player1.split(@deck.deal_one, @deck.deal_one)
       end
-    when 'd' then @player1.double_down(@deck.deal_one)
+    when 'd' then player1.double_down(@deck.deal_one)
     end
+    show_hands
   end
 
   def dealers_turn
     show_hands(DEALER)
     sleep 1
-    @dealer.hand << @deck.deal_one
+    dealer.hand.cards << @deck.deal_one
   end
 
   def play
     loop do
       deal_starting_hands
-      show_hands
-  
-      if blackjack?
+
+      if dealer.hand.total == 21 || player1.hand[0].total == 21
         show_blackjack_winner
       else
         loop do
-          players_turn(players_choice)
-          show_hands
-          break if end_player_turn?
+          end_player_turn? ? break : players_turn(players_choice)
         end
-  
+
         loop do
-          break if total_cards(@dealer.hand) >= 17
-          dealers_turn
-        end 
+          dealer.hand.total >= 17 ? break : dealers_turn
+        end
         show_hands(DEALER)
       end
 
-      puts "play again? (y/n)"
-      user_input = gets.chomp
-      break if user_input.downcase == 'n' || @deck.cards.size < @deck.cards.size * 0.25
+      puts 'play again? (y/n)'
+      break if gets.chomp == 'n' || @deck.cards.size < 52 * 0.25
     end
   end
 end
