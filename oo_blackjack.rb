@@ -110,7 +110,6 @@ class Player
 
   def hit(card)
     hand[hand_index].cards << card
-    stay if hand[hand_index].total >= 21
   end
 
   def stay
@@ -163,10 +162,9 @@ class Game
   PLAYER = 1
   DEALER = 2
 
-  attr_reader :player1, :dealer, :shoe, :num_decks, :running_count
+  attr_reader :player1, :dealer, :shoe, :num_decks
 
   def initialize
-    @running_count = 0
     @player1 = Player.new
     @dealer = Dealer.new
   end
@@ -197,11 +195,10 @@ class Game
 
   def deal_starting_hands
     initialize_starting_hands
-    player1.hand[0].cards = Array(@shoe.deal_one)
-    dealer.hand.cards << shoe.deal_one
-    player1.hand[0].cards << shoe.deal_one
-    dealer.hand.cards << shoe.deal_one
-
+    2.times do
+      player1.hand[0].cards << shoe.deal_one
+      dealer.hand.cards << shoe.deal_one
+    end
     show_hands
   end
 
@@ -239,13 +236,16 @@ class Game
       'House wins'
     elsif player_wins?(player_hand)
       "#{player1.name} wins"
-    else
-      ''
     end
   end
 
   def players_choice
-    puts '(h)it, (s)tand, s(p)lit, (d)ouble down, (help)'
+    options = '(h)it, (s)tand, '
+    options += "s(p)lit, " if player1.hand[player1.hand_index].splitable?
+    options += "(d)ouble down, " if player1.hand[player1.hand_index].doubleable?
+    options += '(help)'
+
+    puts options
     gets.chomp
   end
 
@@ -253,6 +253,7 @@ class Game
     case user_choice
     when 'h'
       player1.hit(shoe.deal_one)
+      player1.stay if player1.hand[player1.hand_index].total >= 21
     when 's' then player1.stay
     when 'p'
       if player1.hand[player1.hand_index].splitable?
@@ -333,13 +334,17 @@ class Game
     end
   end
 
+  def low_shoe?
+    shoe.cards.size < 52 * num_decks * 0.25
+  end
+
   def play
     puts 'how many decks?'
     @num_decks = gets.chomp.to_i
     new_shoe
 
     loop do
-      shoe.cards.size < 52 * num_decks * 0.25 ? new_shoe : false
+      new_shoe if low_shoe?
       deal_starting_hands
       play_hands
       count_quiz
