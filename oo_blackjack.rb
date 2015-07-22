@@ -1,5 +1,5 @@
 # oo_blackjack.rb
-
+require 'pry'
 class Card
   attr_accessor :suit, :rank
 
@@ -199,6 +199,7 @@ class Game
       player1.hand[0].cards << shoe.deal_one
       dealer.hand.cards << shoe.deal_one
     end
+    binding.pry
     show_hands
   end
 
@@ -235,7 +236,11 @@ class Game
     elsif house_wins?(player_hand)
       'House wins'
     elsif player_wins?(player_hand)
+      if player_hand.total == 21 && player_hand.cards.size == 2
+        "Blackjack!"
+      else
       "#{player1.name} wins"
+      end
     end
   end
 
@@ -258,6 +263,7 @@ class Game
     when 'p'
       if player1.hand[player1.hand_index].splitable?
         player1.split(shoe.deal_one, shoe.deal_one)
+        player1.stay if player1.hand[player1.hand_index].total == 21
       end
     when 'd'
       if player1.hand[player1.hand_index].doubleable?
@@ -272,14 +278,6 @@ class Game
     show_hands(DEALER)
     sleep 1
     dealer.hand.cards << shoe.deal_one
-  end
-
-  def new_shoe
-    @shoe = Deck.new(num_decks)
-    shoe.cards.shuffle!
-    system 'clear'
-    puts 'new shoe coming in'
-    sleep 2
   end
 
   def count_quiz
@@ -332,6 +330,14 @@ class Game
       end
       show_hands(DEALER)
     end
+  end
+
+  def new_shoe
+    @shoe = Deck.new(num_decks)
+    shoe.cards.shuffle!
+    system 'clear'
+    puts 'new shoe coming in'
+    sleep 2
   end
 
   def low_shoe?
